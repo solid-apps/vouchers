@@ -813,6 +813,28 @@ async function computeIdentity() {
   }
 }
 
+// Import your identity address as a spendable voucher, sourcing the secret from
+// the JSS-provisioned owner key at /private/privkey.jsonld (--provision-keys):
+// CID Multikey, secretKeyMultibase = "f" + "8126" (secp256k1-priv) + 64-hex secret.
+// Only imports if the key derives to the address shown (no wrong-key imports).
+async function importIdentityVoucher() {
+  try {
+    const keyUrl = new URL('../../../private/privkey.jsonld', location.href).href
+    const doc = await authFetch(keyUrl, { headers: { Accept: 'application/ld+json' } }).then(r => r.ok ? r.json() : null)
+    const node = doc && (doc.secretKeyMultibase ? doc : (Array.isArray(doc['@graph']) ? doc['@graph'].find(n => n && n.secretKeyMultibase) : null))
+    const skmb = node && node.secretKeyMultibase
+    if (!skmb) { toast('No owner key at /private/privkey.jsonld (start JSS with --provision-keys)'); return }
+    let h = skmb[0] === 'f' ? skmb.slice(1) : ''
+    if (h.startsWith('8126')) h = h.slice(4)                        // secp256k1-priv multicodec
+    if (!/^[0-9a-f]{64}$/i.test(h)) { toast("Couldn't parse the provisioned key"); return }
+    const secretHex = h.toLowerCase()
+    if (privkeyToAddress(hexToBytes(secretHex), true) !== identityAddr) { toast('Provisioned key does not match your address — not importing'); return }
+    importing = true; render()
+    await importKey(secretHex)
+    importing = false; render()
+  } catch (e) { importing = false; toast('Import failed: ' + (e.message || e)); render() }
+}
+
 function render() {
   const unspent = vouchers.filter(v => v.status === 'unspent')
   const totalSats = unspent.reduce((s, v) => s + (v.amount || 0), 0)
@@ -860,6 +882,7 @@ function render() {
       <h2>Your testnet4 address <a href="${((NETWORKS['tbtc4'] || {}).explorer || 'https://mempool.guide/testnet4/tx').replace('/tx', '/address')}/${identityAddr}" target="_blank" rel="noopener" style="font-size:.72rem;font-weight:600;color:#60a5fa;text-decoration:none">open in explorer &#8599;</a></h2>
       <div class="v-item-val" id="v-idaddr" style="cursor:pointer" title="from your ${identityType || 'identity'} key — click to copy">${escHtml(identityAddr)}</div>
       <div class="v-help">Derived from your ${identityType || 'identity'} key.${identityBalance > 0 ? ` <b style="color:#10b981">${identityBalance.toLocaleString()} sats</b> received here.` : ' Receive testnet4 coins here (faucets below).'}</div>
+      ${identityBalance > 0 ? `<button class="v-btn v-btn-primary" id="v-id-import" style="margin-top:10px">${importing ? '<span class="v-spinner"></span>' : 'Import as voucher'}</button>` : ''}
     </div>` : ''}
 
     <div class="v-card">
@@ -972,6 +995,7 @@ function render() {
 
 function bindEvents() {
   document.getElementById('v-idaddr')?.addEventListener('click', () => copyText(identityAddr))
+  document.getElementById('v-id-import')?.addEventListener('click', importIdentityVoucher)
   // Import
   const importBtn = document.getElementById('v-import-btn')
   const importInput = document.getElementById('v-import-input')
