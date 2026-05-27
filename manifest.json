@@ -1,0 +1,14 @@
+{
+  "name": "vouchers",
+  "short_name": "vouchers",
+  "description": "Organize your Bitcoin vouchers (funded keys as TXO URIs) on your pod — balance + spent status via mempool, sweep. Keys stored owner-only in /private/.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#24243e",
+  "theme_color": "#0f0c29",
+  "handles": [],
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

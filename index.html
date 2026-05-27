@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>vouchers</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(160deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      color: rgba(255,255,255,0.9);
+      min-height: 100vh;
+    }
+    .v-top { padding: 10px 16px; }
+    .v-top a { font: 600 .85em/1 -apple-system, sans-serif; color: rgba(255,255,255,0.5); text-decoration: none; }
+    .v-wrap { max-width: 900px; margin: 0 auto; padding: 0 16px 40px; }
+    .v-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .v-title { font-size: 1.5em; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+    .v-net { font-size: 0.6em; padding: 4px 10px; border-radius: 6px; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3); color: #fbbf24; font-weight: 600; letter-spacing: 0.04em; }
+
+    /* Balance hero */
+    .v-hero { text-align: center; padding: 32px 0 28px; }
+    .v-hero-label { font-size: 0.78rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .v-hero-sats { font-size: 2.8rem; font-weight: 800; letter-spacing: -0.02em; }
+    .v-hero-btc { font-size: 0.95rem; color: rgba(255,255,255,0.35); margin-top: 2px; }
+
+    /* Cards */
+    .v-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 24px; margin-bottom: 20px; backdrop-filter: blur(12px); }
+    .v-card h2 { font-size: 1rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 16px; display: flex; align-items: center; justify-content: space-between; }
+
+    /* Stats */
+    .v-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .v-stat { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; text-align: center; }
+    .v-stat-val { font-size: 1.5rem; font-weight: 700; }
+    .v-stat-label { font-size: 0.7rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+    /* Import */
+    .v-import-row { display: flex; gap: 8px; }
+    .v-input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); font: 0.88rem -apple-system, sans-serif; outline: none; transition: border-color 0.15s; }
+    .v-input::placeholder { color: rgba(255,255,255,0.25); }
+    .v-input:focus { border-color: rgba(124,58,237,0.5); }
+
+    /* Buttons */
+    .v-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); font: 600 0.85rem -apple-system, sans-serif; cursor: pointer; transition: all 0.15s; }
+    .v-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); color: #fff; }
+    .v-btn-primary { background: linear-gradient(135deg, #7c3aed, #6d28d9); border-color: rgba(124,58,237,0.4); color: #fff; box-shadow: 0 4px 16px rgba(124,58,237,0.2); }
+    .v-btn-primary:hover { box-shadow: 0 6px 24px rgba(124,58,237,0.3); }
+    .v-btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 6px; }
+    .v-btn-icon { padding: 5px 8px; font-size: 0.82rem; border-radius: 6px; min-width: 30px; justify-content: center; }
+    .v-btn-danger { color: #ef4444; }
+    .v-btn-danger:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); }
+
+    /* Voucher list */
+    .v-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; transition: background 0.15s; }
+    .v-item:hover { background: rgba(255,255,255,0.06); }
+    .v-item-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .v-item-amount { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .v-item-amount small { font-size: 0.7em; font-weight: 400; color: rgba(255,255,255,0.35); }
+    .v-item-actions { display: flex; gap: 4px; }
+    .v-item-details { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.82rem; }
+    .v-item-label { color: rgba(255,255,255,0.3); }
+    .v-item-val { color: rgba(255,255,255,0.6); font-family: 'SF Mono', 'Fira Code', monospace; word-break: break-all; cursor: pointer; }
+    .v-item-val:hover { color: rgba(255,255,255,0.9); }
+
+    /* Status badges */
+    .v-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
+    .v-badge-unspent { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); color: #10b981; }
+    .v-badge-spent { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+    .v-badge-unknown { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.35); }
+    .v-badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .v-badge-unspent .v-badge-dot { background: #10b981; }
+    .v-badge-spent .v-badge-dot { background: #ef4444; }
+    .v-badge-unknown .v-badge-dot { background: rgba(255,255,255,0.3); }
+    .v-badge-locked { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); color: #fbbf24; }
+    .v-badge-locked .v-badge-dot { background: #fbbf24; }
+    .v-badge-net { background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.3); color: #60a5fa; font-size: 0.65rem; letter-spacing: 0.04em; }
+
+    /* Masked key */
+    .v-masked { cursor: pointer; user-select: none; }
+    .v-masked::after { content: ' (click)'; font-size: 0.8em; color: rgba(255,255,255,0.2); }
+
+    /* Empty state */
+    .v-empty { text-align: center; padding: 32px; color: rgba(255,255,255,0.25); font-style: italic; }
+
+    /* Toast */
+    .v-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(16,185,129,0.9); color: #fff; padding: 8px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; z-index: 999; animation: v-fade 0.3s; }
+    @keyframes v-fade { from { opacity: 0; transform: translateX(-50%) translateY(8px); } }
+
+    /* Spinner */
+    .v-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.15); border-top-color: #a78bfa; border-radius: 50%; animation: v-spin 0.6s linear infinite; display: inline-block; }
+    @keyframes v-spin { to { transform: rotate(360deg); } }
+
+    .v-help { font-size: 0.78rem; color: rgba(255,255,255,0.25); margin-top: 10px; line-height: 1.5; }
+    .v-help code { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+
+    @media (max-width: 600px) {
+      .v-stats { grid-template-columns: 1fr; }
+      .v-hero-sats { font-size: 2rem; }
+      .v-import-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="v-top"><a href="../../../">&uarr; root</a></div>
+  <div class="v-wrap" id="app"></div>
+  <script type="module" src="vouchers.js"></script>
+</body>
+</html>
