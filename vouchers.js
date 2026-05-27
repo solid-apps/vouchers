@@ -854,7 +854,7 @@ function render() {
     </div>
 
     ${identityAddr ? `<div class="v-card">
-      <h2>Your testnet4 address</h2>
+      <h2>Your testnet4 address <a href="${((NETWORKS['tbtc4'] || {}).explorer || 'https://mempool.guide/testnet4/tx').replace('/tx', '/address')}/${identityAddr}" target="_blank" rel="noopener" style="font-size:.72rem;font-weight:600;color:#60a5fa;text-decoration:none">open in explorer &#8599;</a></h2>
       <div class="v-item-val" id="v-idaddr" style="cursor:pointer" title="from your ${identityType || 'identity'} key — click to copy">${escHtml(identityAddr)}</div>
       <div class="v-help">Derived from your ${identityType || 'identity'} key — receive testnet4 coins here (faucets below).</div>
     </div>` : ''}
