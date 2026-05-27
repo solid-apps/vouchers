@@ -1,6 +1,8 @@
 import { parseTxoUri, isValidTxoUri, formatTxoUri } from 'https://esm.sh/txo_parser'
 import { secp256k1, schnorr } from 'https://esm.sh/@noble/curves@1.8.1/secp256k1'
-import { authFetch } from 'https://esm.sh/nip98'
+// Pod I/O uses the active xlogin session (Solid here) — authenticates silently
+// with the session you're already signed in with, no extra login prompt.
+const authFetch = (url, opts) => ((window.xlogin && window.xlogin.authFetch) || fetch)(url, opts)
 
 // ── Crypto helpers ──────────────────────────────────────
 
@@ -1147,6 +1149,6 @@ async function init() {
 }
 
 init()
-// re-load /private/ vouchers once signed in (xlogin sets window.nostr for nip98)
+// re-load /private/ vouchers when the xlogin session changes (uses xlogin.authFetch)
 document.addEventListener('xlogin', () => init())
 document.addEventListener('xlogout', () => render())
