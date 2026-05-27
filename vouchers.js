@@ -769,6 +769,47 @@ function buildTxoUri(v) {
 
 const app = document.getElementById('app')
 
+// ── Identity address (your key → testnet4 taproot) ──────
+// Your secp256k1 identity key IS a taproot key. Nostr login: the x-only pubkey is
+// window.nostr.getPublicKey(). Solid login: the WebID's CID Multikey
+// (publicKeyMultibase) — strip the multibase + multicodec prefix to the x-only.
+// Then bech32m("tb", 1, x-only) = your testnet4 address (key = address, no tweak).
+let identityAddr = null, identityType = null
+
+function decodeMultibaseXOnly(mb) {
+  try {
+    let bytes
+    if (mb[0] === 'f') bytes = hexToU8(mb.slice(1))          // base16 multibase
+    else if (mb[0] === 'z') bytes = b58decode(mb.slice(1))   // base58btc multibase
+    else return null
+    if (bytes[0] === 0xe7 && bytes[1] === 0x01) bytes = bytes.slice(2)                    // secp256k1-pub multicodec
+    if (bytes.length === 33 && (bytes[0] === 2 || bytes[0] === 3)) bytes = bytes.slice(1) // compressed -> x-only
+    return bytes.length === 32 ? bytes : null
+  } catch { return null }
+}
+async function identityXOnly() {
+  const x = window.xlogin
+  if (!x || !x.id) return null
+  if (x.type === 'nostr') {
+    try { const pk = window.nostr ? await window.nostr.getPublicKey() : String(x.id); if (isHexKey(pk)) { identityType = 'Nostr'; return hexToBytes(pk) } } catch {}
+    return null
+  }
+  try {  // Solid: read the WebID's CID Multikey (public profile, plain fetch)
+    const webid = String(x.id).replace(/#.*$/, '')
+    const doc = await fetch(webid, { headers: { Accept: 'application/ld+json' } }).then(r => r.ok ? r.json() : null)
+    let vms = (doc && doc.verificationMethod) || []
+    if (!Array.isArray(vms)) vms = [vms]
+    for (const vm of vms) { const xonly = vm && vm.publicKeyMultibase && decodeMultibaseXOnly(vm.publicKeyMultibase); if (xonly) { identityType = 'Solid WebID'; return xonly } }
+  } catch {}
+  return null
+}
+async function computeIdentity() {
+  identityAddr = null; identityType = null
+  const xonly = await identityXOnly()
+  if (xonly) identityAddr = bech32mEncode('tb', 1, xonly)   // testnet4 taproot, witness v1
+  render()
+}
+
 function render() {
   const unspent = vouchers.filter(v => v.status === 'unspent')
   const totalSats = unspent.reduce((s, v) => s + (v.amount || 0), 0)
@@ -811,6 +852,12 @@ function render() {
         <div class="v-stat-label">Spent</div>
       </div>
     </div>
+
+    ${identityAddr ? `<div class="v-card">
+      <h2>Your testnet4 address</h2>
+      <div class="v-item-val" id="v-idaddr" style="cursor:pointer" title="from your ${identityType || 'identity'} key — click to copy">${escHtml(identityAddr)}</div>
+      <div class="v-help">Derived from your ${identityType || 'identity'} key — receive testnet4 coins here (faucets below).</div>
+    </div>` : ''}
 
     <div class="v-card">
       <h2>Import Voucher</h2>
@@ -921,6 +968,7 @@ function render() {
 }
 
 function bindEvents() {
+  document.getElementById('v-idaddr')?.addEventListener('click', () => copyText(identityAddr))
   // Import
   const importBtn = document.getElementById('v-import-btn')
   const importInput = document.getElementById('v-import-input')
@@ -1133,6 +1181,7 @@ async function init() {
   vouchers = [...seen.values()]
 
   render()
+  computeIdentity()   // derive + show your testnet4 address from your nostr/Solid identity key
 
   if (keyParam) {
     history.replaceState({}, '', location.pathname)
