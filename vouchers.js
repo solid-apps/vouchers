@@ -334,6 +334,7 @@ const CONTAINER = new URL('../../../private/vouchers/', location.href).href
 const DATA_PATH = CONTAINER + 'voucher-data.jsonld'
 
 async function loadFromPod() {
+  if (!(window.xlogin && window.xlogin.id)) return []   // /private/ is owner-only — only read when signed in
   try {
     const res = await authFetch(DATA_PATH + '?t=' + Date.now(), { cache: 'no-store' })
     if (!res.ok) return []
@@ -409,16 +410,18 @@ async function saveToPod() {
       'schema:dateCreated': v.dateAdded
     }))
   }
-  try {
-    // ensure the owner-only /private/vouchers/ container exists, then write
-    await authFetch(CONTAINER, { method: 'PUT', headers: { 'Content-Type': 'text/turtle', 'Link': '<http://www.w3.org/ns/ldp#BasicContainer>; rel="type"' }, body: '' }).catch(() => {})
-    await authFetch(DATA_PATH, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/ld+json' },
-      body: JSON.stringify(jsonLd, null, 2)
-    })
-  } catch (e) {
-    console.warn('Pod save failed:', e)
+  if (window.xlogin && window.xlogin.id) {   // only write to /private/ when signed in (else just localStorage)
+    try {
+      // ensure the owner-only /private/vouchers/ container exists, then write
+      await authFetch(CONTAINER, { method: 'PUT', headers: { 'Content-Type': 'text/turtle', 'Link': '<http://www.w3.org/ns/ldp#BasicContainer>; rel="type"' }, body: '' }).catch(() => {})
+      await authFetch(DATA_PATH, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/ld+json' },
+        body: JSON.stringify(jsonLd, null, 2)
+      })
+    } catch (e) {
+      console.warn('Pod save failed:', e)
+    }
   }
   // Also cache in localStorage as fallback
   try { localStorage.setItem('voucher-pool-testnet4', JSON.stringify(vouchers)) } catch {}
@@ -1144,3 +1147,6 @@ async function init() {
 }
 
 init()
+// re-load /private/ vouchers once signed in (xlogin sets window.nostr for nip98)
+document.addEventListener('xlogin', () => init())
+document.addEventListener('xlogout', () => render())
