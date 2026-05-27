@@ -774,7 +774,7 @@ const app = document.getElementById('app')
 // window.nostr.getPublicKey(). Solid login: the WebID's CID Multikey
 // (publicKeyMultibase) — strip the multibase + multicodec prefix to the x-only.
 // Then bech32m("tb", 1, x-only) = your testnet4 address (key = address, no tweak).
-let identityAddr = null, identityType = null
+let identityAddr = null, identityType = null, identityBalance = 0
 
 function decodeMultibaseXOnly(mb) {
   try {
@@ -804,10 +804,13 @@ async function identityXOnly() {
   return null
 }
 async function computeIdentity() {
-  identityAddr = null; identityType = null
+  identityAddr = null; identityType = null; identityBalance = 0
   const xonly = await identityXOnly()
   if (xonly) identityAddr = bech32mEncode('tb', 1, xonly)   // testnet4 taproot, witness v1
   render()
+  if (identityAddr) {   // show what's been received at it (read-only, public address)
+    try { const u = await fetchUtxos(identityAddr, 'tbtc4'); identityBalance = u.reduce((s, x) => s + (x.value || 0), 0); render() } catch {}
+  }
 }
 
 function render() {
@@ -856,7 +859,7 @@ function render() {
     ${identityAddr ? `<div class="v-card">
       <h2>Your testnet4 address <a href="${((NETWORKS['tbtc4'] || {}).explorer || 'https://mempool.guide/testnet4/tx').replace('/tx', '/address')}/${identityAddr}" target="_blank" rel="noopener" style="font-size:.72rem;font-weight:600;color:#60a5fa;text-decoration:none">open in explorer &#8599;</a></h2>
       <div class="v-item-val" id="v-idaddr" style="cursor:pointer" title="from your ${identityType || 'identity'} key — click to copy">${escHtml(identityAddr)}</div>
-      <div class="v-help">Derived from your ${identityType || 'identity'} key — receive testnet4 coins here (faucets below).</div>
+      <div class="v-help">Derived from your ${identityType || 'identity'} key.${identityBalance > 0 ? ` <b style="color:#10b981">${identityBalance.toLocaleString()} sats</b> received here.` : ' Receive testnet4 coins here (faucets below).'}</div>
     </div>` : ''}
 
     <div class="v-card">
