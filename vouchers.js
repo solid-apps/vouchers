@@ -467,6 +467,13 @@ function escHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+// Attribute-context escaper: also neutralises the quote chars that would let
+// an untrusted value break out of a double/single-quoted HTML attribute.
+// escHtml alone is unsafe inside attributes (it leaves " and ' intact).
+function escAttr(s) {
+  return escHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 function toast(msg) {
   const t = document.createElement('div')
   t.className = 'v-toast'
@@ -501,6 +508,12 @@ async function importKey(input) {
         amount: params?.get('amount') ? parseFloat(params.get('amount')) : 0,
         privkey: params?.get('key') || '',
       }
+      // Reject malformed TXO URIs at the source. A Bitcoin txid is always 64
+      // hex chars and the network is a fixed set — anything else is bogus (and,
+      // via a crafted ?key= share link, a script-injection payload). Bailing
+      // here stops such links auto-importing on page load.
+      if (!/^[0-9a-fA-F]{64}$/.test(parsed.txid || '')) { toast('Invalid TXO URI: bad txid'); return }
+      if (!NETWORKS[parsed.network]) { toast('Invalid TXO URI: unknown network'); return }
       const exists = vouchers.some(v => v.txid === parsed.txid && v.vout === parsed.output)
       if (exists) { toast('Voucher already in pool'); return }
       const v = {
@@ -926,7 +939,7 @@ function render() {
               ${mergeMode && hasKey && v.status === 'unspent' ? `<input type="checkbox" data-action="merge-check" data-id="${v.id}" ${mergeSelected.has(v.id) ? 'checked' : ''} style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer" />` : ''}
               ${(v.amount || 0).toLocaleString()} <small>sats</small>
               <span class="v-badge ${badgeClass}"><span class="v-badge-dot"></span>${badgeLabel}</span>
-              <span class="v-badge v-badge-net">${(NETWORKS[v.network] || {}).label || (v.network || '').toUpperCase()}</span>
+              <span class="v-badge v-badge-net">${escHtml((NETWORKS[v.network] || {}).label || (v.network || '').toUpperCase())}</span>
               ${!hasKey ? '<span class="v-badge v-badge-locked"><span class="v-badge-dot"></span>No Key</span>' : ''}
             </div>
             <div class="v-item-actions">
@@ -941,14 +954,14 @@ function render() {
           </div>
           <div class="v-item-details">
             <span class="v-item-label">TXID</span>
-            <a class="v-item-val" href="${(NETWORKS[v.network] || NETWORKS[DEFAULT_NETWORK]).explorer}/${v.txid}" target="_blank" rel="noopener" style="color:rgba(167,139,250,0.8);text-decoration:none">${truncate(v.txid)}:${v.vout}</a>
+            <a class="v-item-val" href="${(NETWORKS[v.network] || NETWORKS[DEFAULT_NETWORK]).explorer}/${encodeURIComponent(v.txid)}" target="_blank" rel="noopener" style="color:rgba(167,139,250,0.8);text-decoration:none">${escHtml(truncate(v.txid))}:${v.vout}</a>
             ${v.address ? `
               <span class="v-item-label">Address</span>
-              <span class="v-item-val" data-action="copy-raw" data-val="${v.address}">${truncate(v.address, 10, 6)}</span>
+              <span class="v-item-val" data-action="copy-raw" data-val="${escAttr(v.address)}">${escHtml(truncate(v.address, 10, 6))}</span>
             ` : ''}
             ${hasKey ? `
               <span class="v-item-label">Key</span>
-              <span class="v-item-val v-masked" data-action="reveal" data-full="${escHtml(v.privkey)}">${maskKey(v.privkey)}</span>
+              <span class="v-item-val v-masked" data-action="reveal" data-full="${escAttr(v.privkey)}">${escHtml(maskKey(v.privkey))}</span>
             ` : ''}
           </div>
           <div class="v-add-key-row" style="display:none;margin-top:10px">
